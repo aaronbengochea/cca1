@@ -37,6 +37,10 @@ $(document).ready(function() {
     }, {});
   }
 
+  function foobar(){
+    console.log("foo")
+  }
+
   function insertMessage() {
     msg = $('.message-input').val();
     if ($.trim(msg) == '') {
