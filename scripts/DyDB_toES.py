@@ -5,10 +5,8 @@ import boto3
 from boto3.dynamodb.conditions import Attr
 from dotenv import load_dotenv
 
-
 # Load env variables
 load_dotenv()
-
 
 # Set up your AWS Elasticsearch (OpenSearch) domain endpoint and region
 ES_ENDPOINT = os.getenv("AWS_ES")  # Replace with your ES domain URL
@@ -16,6 +14,7 @@ INDEX = "restaurants"
 region = 'us-east-1'
 service = 'es'
 
+# Get AWS credentials using boto3
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key,
                    credentials.secret_key,

@@ -1,17 +1,20 @@
 import json
+import os
 import boto3
 import random
 import requests
 from requests_aws4auth import AWS4Auth
 
-# Set up your Elasticsearch domain and index.
-ES_ENDPOINT = "https://search-hw1-pwgm55hunr22zboasjqmkbj4ai.aos.us-east-1.on.aws"  # Your ES endpoint
+# Set up your Elasticsearch query details
+ES_ENDPOINT = os.getenv("AWS_ES")
+ES_AUTH_USER = os.getenv("AWS_ES_AUTH_USER")
+ES_AUTH_PASS = os.getenv("AWS_ES_AUTH_PASS")
 INDEX = "restaurants"
 region = 'us-east-1'
 service = 'es'
 
 # SQS Queue URL for receiving suggestion requests.
-QUEUE_ENDPOINT = "https://sqs.us-east-1.amazonaws.com/376129866895/restaurantsQueue"
+QUEUE_ENDPOINT = os.getenv("AWS_SQS")
 
 
 def lambda_handler(event, context):
@@ -21,7 +24,9 @@ def lambda_handler(event, context):
     sqs = boto3.client('sqs', region_name=region)
     dynamodb = boto3.resource('dynamodb', region_name=region)
     ses = boto3.client('ses', region_name=region)
-    
+
+
+    # ---- Retrieve and parse one message from SQS Queue ----
     # Retrieve one message from SQS.
     print("Polling SQS for messages...")
     sqs_response = sqs.receive_message(
@@ -37,7 +42,7 @@ def lambda_handler(event, context):
     
     message = sqs_response['Messages'][0]
     receipt_handle = message['ReceiptHandle']
-    print("Received message. Receipt Handle:", receipt_handle)
+    
     
     # Parse SQS message body.
     try:
@@ -58,10 +63,10 @@ def lambda_handler(event, context):
         sqs.delete_message(QueueUrl=QUEUE_ENDPOINT, ReceiptHandle=receipt_handle)
         return {"status": "Incomplete message data", "error": "Missing city, cuisine, or email."}
     
-    # ---- Query Elasticsearch for restaurants matching city and cuisine ----
+    # ---- Query Elasticsearch for restaurants matching cuisine ----
     # Build an ES query to match both "Cuisine" and "City".
     query = {
-        "size": 10,
+        "size": 50,
         "query": {
             "match": {
                 "Cuisine": cuisine
@@ -78,7 +83,7 @@ def lambda_handler(event, context):
     }
 
     # Send the GET request to Elasticsearch.
-    response = requests.get(url, auth=("abengo007", "Aaron003$"), headers=headers, json=query)
+    response = requests.get(url, auth=(ES_AUTH_USER, ES_AUTH_PASS), headers=headers, json=query)
     
     results = response.json()
     hits = results.get('hits', {}).get('hits', [])
